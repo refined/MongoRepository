@@ -12,12 +12,4 @@ namespace Novikov.MongoRepository
 
         bool IsTransient();
     }
-
-    public static class InterfaceEntityExtension
-    {
-        public static bool IsTransient<TIdentifier>(this IEntity<TIdentifier> entity)
-        {
-            return entity.Id == null || entity.Id.Equals(default(TIdentifier));
-        }
-    }
 }
