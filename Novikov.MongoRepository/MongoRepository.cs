@@ -126,6 +126,13 @@ namespace Novikov.MongoRepository
                 .ConfigureAwait(false);
         }
 
+        public async Task DeleteBulkAsync(Expression<Func<TEntity, bool>> searchExpression, CancellationToken cancellationToken = default)
+        {
+            await Collection
+                .DeleteManyAsync(searchExpression, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         public void Delete(TIdentifier id)
         {
             Collection.DeleteOne(x => x.Id.Equals(id));
