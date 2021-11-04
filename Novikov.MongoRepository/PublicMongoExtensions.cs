@@ -29,12 +29,12 @@ namespace Novikov.MongoRepository
             });
         }
 
-        public static IServiceCollection AddRepositoriesBsonMapper(this IServiceCollection services)
+        public static IServiceCollection AddRepositoriesBsonMapper<TIdentifier>(this IServiceCollection services)
         {
             var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
             ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
 
-            BsonClassMap.RegisterClassMap<MongoEntity> (cm =>
+            BsonClassMap.RegisterClassMap<MongoEntity<TIdentifier>> (cm =>
             {
                 cm.AutoMap();
                 cm.MapIdProperty(c => c.Id)

@@ -16,9 +16,4 @@ namespace Novikov.MongoRepository
             return Id == null || Id.Equals(default);
         }
     }
-
-    [Serializable]
-    public abstract class MongoEntity : MongoEntity<string>
-    {
-    }    
 }
