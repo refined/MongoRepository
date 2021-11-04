@@ -3,7 +3,7 @@
 namespace Novikov.MongoRepository
 {
     [Serializable]
-    public abstract class Entity<TIdentifier> : IEntity<TIdentifier>
+    public abstract class MongoEntity<TIdentifier> : IMongoEntity<TIdentifier>
     {
         public TIdentifier Id { get; set; }
 
@@ -13,7 +13,12 @@ namespace Novikov.MongoRepository
 
         public virtual bool IsTransient()
         {
-            return (object)this.Id == null || this.Id.Equals((object)default(TIdentifier));
+            return Id == null || Id.Equals(default);
         }
     }
+
+    [Serializable]
+    public abstract class MongoEntity : MongoEntity<string>
+    {
+    }    
 }
