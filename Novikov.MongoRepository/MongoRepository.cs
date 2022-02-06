@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Novikov.MongoRepository
@@ -36,22 +37,41 @@ namespace Novikov.MongoRepository
                 .GetCollection<TEntity>(collectionName.OrDefaultCollectionName<TEntity, TIdentifier>());
         }
 
-
         public Task<TEntity> FirstOrDefault(Expression<Func<TEntity, bool>> searchExpression, CancellationToken cancellationToken = default(CancellationToken))
         {
             return Find(searchExpression).FirstOrDefaultAsync(cancellationToken);
         }
 
-        public Task<TEntity> Update<TField>(
+        public Task<TEntity> UpdateField<TField>(
             Expression<Func<TEntity, bool>> searchExpression,
             Expression<Func<TEntity, TField>> fieldExpression,
             TField fieldValue,
             CancellationToken cancellationToken = default)
         {
             var updateDef = Builders<TEntity>.Update.Set(fieldExpression, fieldValue);
-            var filter = searchExpression;
             var updateOptions = new FindOneAndUpdateOptions<TEntity> { ReturnDocument = ReturnDocument.After };
-            return Collection.FindOneAndUpdateAsync(filter, updateDef, updateOptions, cancellationToken);
+            return Collection.FindOneAndUpdateAsync(searchExpression, updateDef, updateOptions, cancellationToken);
+        }
+
+        public Task<TEntity> Update(
+            TEntity entity,
+            IEnumerable<string> excludedFields,
+            CancellationToken cancellationToken = default)
+        {
+            entity.UpdatedDate = DateTime.UtcNow;
+            var bson = entity.ToBsonDocument();
+            bson.Remove(nameof(entity.CreatedDate));
+            foreach (var field in excludedFields)
+            {
+                bson.Remove(field);
+            }
+
+            return Collection.FindOneAndUpdateAsync(
+                Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
+                bson,
+                new FindOneAndUpdateOptions<TEntity> { ReturnDocument = ReturnDocument.After },
+                cancellationToken
+            );
         }
 
         public async Task<TEntity> Get(TIdentifier id, CancellationToken cancellationToken = default(CancellationToken))
@@ -80,11 +100,10 @@ namespace Novikov.MongoRepository
             }
             else
             {
-                entity.UpdatedDate = DateTime.UtcNow;
                 await Collection
                     .ReplaceOneAsync(
-                        Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id), 
-                        entity, 
+                        Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
+                        entity,
                         new ReplaceOptions { IsUpsert = true },
                         cancellationToken)
                     .ConfigureAwait(false);
