@@ -53,20 +53,29 @@ namespace Novikov.MongoRepository
             return Collection.FindOneAndUpdateAsync(searchExpression, updateDef, updateOptions, cancellationToken);
         }
 
-        public Task<TEntity> Update(
+        public async Task<TEntity> Update(
             TEntity entity,
             IEnumerable<string> excludedFields,
             CancellationToken cancellationToken = default)
         {
+            var prev = await Collection.Find(Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id)).Limit(1).FirstOrDefaultAsync(cancellationToken: cancellationToken);
+            if (prev == null)
+            {
+                await Save(entity, cancellationToken);
+                return entity;
+            }
             entity.UpdatedDate = DateTime.UtcNow;
+
+            var bsonPrev = prev.ToBsonDocument();
             var bson = entity.ToBsonDocument();
-            bson.Remove(nameof(entity.CreatedDate));
+
+            excludedFields.Append(nameof(entity.CreatedDate));
             foreach (var field in excludedFields)
             {
-                bson.Remove(field);
+                bson.SetElement(bsonPrev.GetElement(field));
             }
 
-            return Collection.FindOneAndUpdateAsync(
+            return await Collection.FindOneAndUpdateAsync(
                 Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
                 bson,
                 new FindOneAndUpdateOptions<TEntity> { ReturnDocument = ReturnDocument.After },
@@ -74,7 +83,7 @@ namespace Novikov.MongoRepository
             );
         }
 
-        public async Task<TEntity> Get(TIdentifier id, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<TEntity> Get(TIdentifier id, CancellationToken cancellationToken = default)
         {
             return await Collection.Find(x => x.Id.Equals(id))
                 .FirstOrDefaultAsync(cancellationToken)
@@ -88,7 +97,7 @@ namespace Novikov.MongoRepository
                 .ConfigureAwait(false);
         }
 
-        public async Task<TIdentifier> Save(TEntity entity, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<TIdentifier> Save(TEntity entity, CancellationToken cancellationToken = default)
         {
             if (entity.IsTransient())
             {
@@ -100,7 +109,7 @@ namespace Novikov.MongoRepository
             }
             else
             {
-                await Collection
+               await Collection
                     .ReplaceOneAsync(
                         Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
                         entity,
