@@ -48,9 +48,25 @@ namespace Novikov.MongoRepository
             TField fieldValue,
             CancellationToken cancellationToken = default)
         {
-            var updateDef = Builders<TEntity>.Update.Set(fieldExpression, fieldValue);
+            var updateDef = Builders<TEntity>
+                .Update
+                .Set(fieldExpression, fieldValue)
+                .Set(e => e.UpdatedDate, DateTime.UtcNow);
             var updateOptions = new FindOneAndUpdateOptions<TEntity> { ReturnDocument = ReturnDocument.After };
             return Collection.FindOneAndUpdateAsync(searchExpression, updateDef, updateOptions, cancellationToken);
+        }
+
+        public async Task<TIdentifier> Update(TEntity entity, CancellationToken cancellationToken = default)
+        {
+            entity.UpdatedDate = DateTime.UtcNow;
+            await Collection
+                .ReplaceOneAsync(
+                    Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
+                    entity,
+                    new ReplaceOptions { IsUpsert = true },
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return entity.Id;
         }
 
         public async Task<TEntity> Update(
@@ -99,23 +115,23 @@ namespace Novikov.MongoRepository
 
         public async Task<TIdentifier> Save(TEntity entity, CancellationToken cancellationToken = default)
         {
+            entity.UpdatedDate = DateTime.UtcNow;
             if (entity.IsTransient())
             {
                 entity.CreatedDate = DateTime.UtcNow;
-                entity.UpdatedDate = DateTime.UtcNow;
                 await Collection
                     .InsertOneAsync(entity, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
             }
             else
             {
-               await Collection
-                    .ReplaceOneAsync(
-                        Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
-                        entity,
-                        new ReplaceOptions { IsUpsert = true },
-                        cancellationToken)
-                    .ConfigureAwait(false);
+                await Collection
+                     .ReplaceOneAsync(
+                         Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
+                         entity,
+                         new ReplaceOptions { IsUpsert = true },
+                         cancellationToken)
+                     .ConfigureAwait(false);
             }
             return entity.Id;
         }

@@ -9,21 +9,17 @@ namespace Novikov.MongoRepository
 {
     public static class PublicMongoExtensions
     {
-        public static void RegisterObjectIdMapper()
+        public static void RegisterObjectIdMapper<TIdentifier>()
         {
-            BsonClassMap.RegisterClassMap<IMongoEntity<string>>(cm =>
+            var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
+            ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
+
+            BsonClassMap.RegisterClassMap<MongoEntity<TIdentifier>>(cm =>
             {
                 cm.AutoMap();
                 cm.MapIdProperty(c => c.Id)
                     .SetIdGenerator(StringObjectIdGenerator.Instance)
                     .SetSerializer(new StringSerializer(BsonType.ObjectId));
-                cm.SetIgnoreExtraElements(true);
-                cm.SetIgnoreExtraElementsIsInherited(true);
-            });
-
-            BsonClassMap.RegisterClassMap<IMongoEntity<ObjectId>>(cm =>
-            {
-                cm.AutoMap();
                 cm.SetIgnoreExtraElements(true);
                 cm.SetIgnoreExtraElementsIsInherited(true);
             });
