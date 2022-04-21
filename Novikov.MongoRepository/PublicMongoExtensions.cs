@@ -9,12 +9,13 @@ namespace Novikov.MongoRepository
 {
     public static class PublicMongoExtensions
     {
-        public static void RegisterObjectIdMapper<TIdentifier>()
+        public static void RegisterObjectIdMapper<TEntity, TIdentifier>() 
+            where TEntity : class, IMongoEntity<TIdentifier>
         {
             var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
             ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
 
-            BsonClassMap.RegisterClassMap<MongoEntity<TIdentifier>>(cm =>
+            BsonClassMap.RegisterClassMap<TEntity>(cm =>
             {
                 cm.AutoMap();
                 cm.MapIdProperty(c => c.Id)
@@ -23,14 +24,15 @@ namespace Novikov.MongoRepository
                 cm.SetIgnoreExtraElements(true);
                 cm.SetIgnoreExtraElementsIsInherited(true);
             });
-        }
+        }        
 
-        public static IServiceCollection AddRepositoriesBsonMapper<TIdentifier>(this IServiceCollection services)
+        public static IServiceCollection AddRepositoriesBsonMapper<TEntity, TIdentifier>(this IServiceCollection services)
+            where TEntity : class, IMongoEntity<TIdentifier>
         {
             var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
             ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
 
-            BsonClassMap.RegisterClassMap<MongoEntity<TIdentifier>> (cm =>
+            BsonClassMap.RegisterClassMap<TEntity> (cm =>
             {
                 cm.AutoMap();
                 cm.MapIdProperty(c => c.Id)
