@@ -1,5 +1,7 @@
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Novikov.MongoRepository.Test
@@ -32,6 +34,21 @@ namespace Novikov.MongoRepository.Test
             Assert.AreEqual("2", entity.MyVar);
 
             entity = await _repository.Get(entity.Id);
+        }
+
+        [Test]
+        public async Task Test2()
+        {
+            var now = DateTime.UtcNow;
+            string id = await _repository?.Save(new TestEntity { MyVar = "1" });
+            Assert.NotNull(id);
+
+            await _repository.Update(new TestEntity{ Id = id, MyVar = "2" });
+
+            var entity = await _repository.Get(id);
+            Assert.AreEqual(id, entity.Id);
+            Assert.AreEqual("2", entity.MyVar);
+            Assert.Greater(entity.CreatedDate, now);
         }
     }
 }

@@ -75,9 +75,10 @@ namespace Novikov.MongoRepository
             var bsonPrev = prev.ToBsonDocument();
             var bson = entity.ToBsonDocument();
 
-            excludedFields ??= Enumerable.Empty<string>();
-            excludedFields.Append(nameof(entity.CreatedDate));
-            foreach (var field in excludedFields)
+            var excludedFieldsList = new List<string> { nameof(entity.CreatedDate) };
+            if (excludedFields != null) excludedFieldsList.Concat(excludedFields);
+
+            foreach (var field in excludedFieldsList)
             {
                 bson.SetElement(bsonPrev.GetElement(field));
             }
