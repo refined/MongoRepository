@@ -56,35 +56,26 @@ namespace Novikov.MongoRepository
             return Collection.FindOneAndUpdateAsync(searchExpression, updateDef, updateOptions, cancellationToken);
         }
 
-        public async Task<TIdentifier> Update(TEntity entity, CancellationToken cancellationToken = default)
-        {
-            entity.UpdatedDate = DateTime.UtcNow;
-            await Collection
-                .ReplaceOneAsync(
-                    Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
-                    entity,
-                    new ReplaceOptions { IsUpsert = true },
-                    cancellationToken)
-                .ConfigureAwait(false);
-            return entity.Id;
-        }
-
         public async Task<TEntity> Update(
             TEntity entity,
-            IEnumerable<string> excludedFields,
+            IEnumerable<string> excludedFields = default,
             CancellationToken cancellationToken = default)
         {
-            var prev = await Collection.Find(Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id)).Limit(1).FirstOrDefaultAsync(cancellationToken: cancellationToken);
+            var prev = await Collection
+                .Find(Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id))
+                .Limit(1)
+                .FirstOrDefaultAsync(cancellationToken: cancellationToken);
             if (prev == null)
             {
                 await Save(entity, cancellationToken);
                 return entity;
             }
-            entity.UpdatedDate = DateTime.UtcNow;
 
+            entity.UpdatedDate = DateTime.UtcNow;
             var bsonPrev = prev.ToBsonDocument();
             var bson = entity.ToBsonDocument();
 
+            excludedFields ??= Enumerable.Empty<string>();
             excludedFields.Append(nameof(entity.CreatedDate));
             foreach (var field in excludedFields)
             {
