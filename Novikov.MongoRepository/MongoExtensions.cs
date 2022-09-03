@@ -11,7 +11,7 @@
         {
             return !string.IsNullOrWhiteSpace(dbName)
                 ? dbName
-                : $"{typeof(TEntity).Name}_DB";
+                : $"{typeof(TEntity).Name}DB";
         }
 
         public static string OrDefaultCollectionName<TEntity, TIdentifier>(this string collectionName) where TEntity : class, IMongoEntity<TIdentifier>

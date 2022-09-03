@@ -19,13 +19,19 @@ namespace Novikov.MongoRepository.Test
 
     public class TestRepositoryInterface
     {
-        private MongoRepository<TestEntityFromInterface, string>? _repository;
+        private MongoRepository<TestEntityFromInterface, string> _repository;
 
         [SetUp]
         public void Setup()
         {
             PublicMongoExtensions.RegisterObjectIdMapper<TestEntityFromInterface, string>();
             _repository = new MongoRepository<TestEntityFromInterface, string>();
+        }
+
+        [TearDown]
+        public async Task TearDown()
+        {
+            await _repository.DropCollection();
         }
 
         [Test]

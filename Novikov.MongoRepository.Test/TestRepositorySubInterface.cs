@@ -23,7 +23,7 @@ namespace Novikov.MongoRepository.Test
 
     public class TestRepositorySubInterface
     {
-        private MongoRepository<TestEntitySubInterface, string>? _repository;
+        private MongoRepository<TestEntitySubInterface, string> _repository;
 
         [SetUp]
         public void Setup()
@@ -32,10 +32,16 @@ namespace Novikov.MongoRepository.Test
             _repository = new MongoRepository<TestEntitySubInterface, string>();
         }
 
+        [TearDown]
+        public async Task TearDown()
+        {
+            await _repository.DropCollection();
+        }
+
         [Test]
         public async Task Test1()
         {
-            string? id = await _repository?.Save(new TestEntitySubInterface { MyVar = "10" });
+            string? id = await _repository.Save(new TestEntitySubInterface { MyVar = "10" });
             Assert.NotNull(id);
 
             await _repository.UpdateField(r => r.Id == id, r => r.MyVar, "20");

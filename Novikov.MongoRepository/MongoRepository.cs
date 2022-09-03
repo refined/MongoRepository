@@ -13,6 +13,8 @@ namespace Novikov.MongoRepository
     public class MongoRepository<TEntity, TIdentifier>
         where TEntity : class, IMongoEntity<TIdentifier>
     {
+        public string CollectionName { get; }
+
         protected readonly IMongoCollection<TEntity> Collection;
 
         public IMongoIndexManager<TEntity> Indexes => Collection.Indexes;
@@ -32,9 +34,10 @@ namespace Novikov.MongoRepository
 
         public MongoRepository(MongoClientSettings clientSettings, string dbName = null, string collectionName = null)
         {
+            CollectionName = collectionName.OrDefaultCollectionName<TEntity, TIdentifier>();
             Collection = new MongoClient(clientSettings)
                 .GetDatabase(dbName.OrDefaultDbName<TEntity, TIdentifier>())
-                .GetCollection<TEntity>(collectionName.OrDefaultCollectionName<TEntity, TIdentifier>());
+                .GetCollection<TEntity>(collectionName);
         }
 
         public Task<TEntity> FirstOrDefault(Expression<Func<TEntity, bool>> searchExpression, CancellationToken cancellationToken = default(CancellationToken))
@@ -58,7 +61,7 @@ namespace Novikov.MongoRepository
 
         public async Task<TEntity> Update(
             TEntity entity,
-            IEnumerable<string> excludedFields = default,
+            IEnumerable<string> fieldsToCopyFromPrev,
             CancellationToken cancellationToken = default)
         {
             var prev = await Collection
@@ -74,14 +77,12 @@ namespace Novikov.MongoRepository
             entity.UpdatedDate = DateTime.UtcNow;
             var bsonPrev = prev.ToBsonDocument();
             var bson = entity.ToBsonDocument();
+            bson.SetElement(bsonPrev.GetElement(nameof(entity.CreatedDate)));
 
-            var excludedFieldsList = new List<string> { nameof(entity.CreatedDate) };
-            if (excludedFields != null) excludedFieldsList.Concat(excludedFields);
-
-            foreach (var field in excludedFieldsList)
+            foreach (var field in fieldsToCopyFromPrev)
             {
                 bson.SetElement(bsonPrev.GetElement(field));
-            }
+            }            
 
             return await Collection.FindOneAndUpdateAsync(
                 Builders<TEntity>.Filter.Eq(e => e.Id, entity.Id),
@@ -200,6 +201,11 @@ namespace Novikov.MongoRepository
             //}
 
             return find;
+        }
+
+        public async Task DropCollection()
+        {
+            await Collection.Database.DropCollectionAsync(CollectionName);
         }
 
         public IQueryable<TEntity> AsQueryable()
