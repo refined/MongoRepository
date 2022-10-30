@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace Novikov.MongoRepository
 {
@@ -208,7 +209,7 @@ namespace Novikov.MongoRepository
             await Collection.Database.DropCollectionAsync(CollectionName);
         }
 
-        public IQueryable<TEntity> AsQueryable()
+        public IMongoQueryable<TEntity> AsQueryable()
         {
             return Collection.AsQueryable();
         }
